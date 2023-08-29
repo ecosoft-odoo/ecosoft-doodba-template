@@ -1,2 +1,1 @@
 # ecosoft-doodba-template
-test
