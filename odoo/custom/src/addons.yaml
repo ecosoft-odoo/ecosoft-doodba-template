@@ -1,0 +1,5 @@
+partner-contact:
+  - partner_bank_code
+  - partner_company_type
+  - partner_fax
+  - partner_firstname
