@@ -5,7 +5,7 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 
 # doodba-template - a Doodba deployment
-
+TEST
 This project is a Doodba scaffolding. Check upstream docs on the matter:
 
 - [General Doodba docs](https://github.com/Tecnativa/doodba).
