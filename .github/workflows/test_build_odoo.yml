@@ -34,4 +34,4 @@ jobs:
         run: invoke develop img-build git-aggregate resetdb start
       - name: Install addons
         run: |
-          invoke install --extra --private
+          invoke install --extra --private --modules=base
