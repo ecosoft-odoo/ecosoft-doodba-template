@@ -108,6 +108,29 @@ def _get_cwd_addon(file):
             return None
 
 
+def cleanup_modules():
+    ADDONS_FILE = SRC_PATH / "addons.yaml"
+
+    if not ADDONS_FILE.exists():
+        _logger.info(f"addons.yaml not found at {ADDONS_FILE}")
+        return
+
+    with ADDONS_FILE.open("r") as f:
+        addons_config = yaml.safe_load(f)
+
+    for repo_path, modules in addons_config.items():
+        repo_dir = SRC_PATH / repo_path
+        git_dir = repo_dir / ".git"
+
+        if not git_dir.exists():
+            continue
+
+        _logger.info(f"Applying sparse-checkout in: {repo_dir}")
+
+        subprocess.run(["git", "sparse-checkout", "init", "--cone"], cwd=repo_dir)
+        subprocess.run(["git", "sparse-checkout", "set"] + modules, cwd=repo_dir)
+
+
 def _scan_subrepos_and_add_path_mappings(
     cw_config,
     debugpy_configuration,
@@ -481,7 +504,7 @@ def develop(c):
 
 
 @task(develop)
-def git_aggregate(c):
+def git_aggregate(c, clean=False):
     """Download odoo & addons git code.
 
     Executes git-aggregator from within the doodba container.
@@ -491,6 +514,9 @@ def git_aggregate(c):
             DOCKER_COMPOSE_CMD + " --file setup-devel.yaml run --rm -T odoo",
             env=UID_ENV,
         )
+    if clean:
+        cleanup_modules(c)
+
     write_code_workspace_file(c)
     for git_folder in SRC_PATH.glob("*/.git/.."):
         action = (
