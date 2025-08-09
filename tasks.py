@@ -118,11 +118,19 @@ def cleanup_modules():
     with ADDONS_FILE.open("r") as f:
         addons_config = yaml.safe_load(f)
 
+    if not addons_config:
+        return
+
     for repo_path, modules in addons_config.items():
         repo_dir = SRC_PATH / repo_path
         git_dir = repo_dir / ".git"
 
         if not git_dir.exists():
+            continue
+
+        if "*" in modules:
+            subprocess.run(["git", "sparse-checkout", "disable"], cwd=repo_dir)
+            subprocess.run(["git", "checkout", "."], cwd=repo_dir)
             continue
 
         _logger.info(f"Applying sparse-checkout in: {repo_dir}")
@@ -515,7 +523,7 @@ def git_aggregate(c, clean=False):
             env=UID_ENV,
         )
     if clean:
-        cleanup_modules(c)
+        cleanup_modules()
 
     write_code_workspace_file(c)
     for git_folder in SRC_PATH.glob("*/.git/.."):
