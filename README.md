@@ -12,6 +12,28 @@ This project is a Doodba scaffolding. Check upstream docs on the matter:
 - [Doodba copier template docs](https://github.com/Tecnativa/doodba-copier-template)
 - [Doodba QA docs](https://github.com/Tecnativa/doodba-qa)
 
+## Using `git-aggregate` with Selective Module Checkout
+
+This project extends the standard `git-aggregate` command to support **downloading only
+selected modules** from a repository, based on your `addons.yaml` configuration.
+
+## Command
+
+To aggregate repositories and apply Sparse Checkout rules:
+
+```python
+inv git-aggregate --clean
+```
+
+The `--clean` flag runs a cleanup process that applies the Sparse Checkout settings
+according to your addons.yaml.
+
+## Benefits
+
+- Reduced storage usage.
+- Faster git-aggregate execution, especially on large OCA/community repositories.
+- No manual repo cleanup required when changing module selection.
+
 # Credits
 
 This project is maintained by: Ecosoft
