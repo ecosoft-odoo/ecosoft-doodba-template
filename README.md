@@ -4,35 +4,72 @@
 [![BSL-1.0 license](https://img.shields.io/badge/license-BSL--1.0-success})](LICENSE)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 
-# doodba-template - a Doodba deployment
+# Ecosoft Doodba Template (Odoo 18.0)
 
-This project is a Doodba scaffolding. Check upstream docs on the matter:
+## About
 
-- [General Doodba docs](https://github.com/Tecnativa/doodba).
-- [Doodba copier template docs](https://github.com/Tecnativa/doodba-copier-template)
-- [Doodba QA docs](https://github.com/Tecnativa/doodba-qa)
+This repository provides a **ready-to-use template** for deploying **Odoo 18.0** using
+[Doodba](https://github.com/Tecnativa/doodba). It is designed to help teams quickly set
+up a **standardized Odoo project** with:
 
-## Using `git-aggregate` with Selective Module Checkout
+- Pre-configured development and production environments.
+- CI/CD integration via GitHub Actions.
+- Docker-based deployment using `docker compose`.
 
-This project extends the standard `git-aggregate` command to support **downloading only
-selected modules** from a repository, based on your `addons.yaml` configuration.
+**Key Benefits:**
 
-## Command
+- **Consistency** — same structure for every project.
+- **Speed** — start development within minutes.
+- **Automation** — build, test, and deploy via GitHub Actions.
+- **Flexibility** — supports staging and production environments.
 
-To aggregate repositories and apply Sparse Checkout rules:
+## Quick Start
 
-```python
-inv git-aggregate --clean
-```
+1. **Fork this repository**
 
-The `--clean` flag runs a cleanup process that applies the Sparse Checkout settings
-according to your addons.yaml.
+   - Click the `Fork` button on GitHub to create your own copy.
 
-## Benefits
+2. **Clone your fork**
 
-- Reduced storage usage.
-- Faster git-aggregate execution, especially on large OCA/community repositories.
-- No manual repo cleanup required when changing module selection.
+   ```bash
+   git clone https://github.com/<your-username>/<your-repo-name>.git
+   cd <your-repo-name>
+   ```
+
+3. **Set up environment variables**
+
+   ```bash
+   cp .docker/db-access.env.example .docker/db-access.env
+   cp .docker/db-creation.env.example .docker/db-creation.env
+   cp .docker/odoo.env.example .docker/odoo.env
+   ```
+
+   Edit the `.env` files to set up your environment variables.
+
+4. **Build and run the containers**
+   ```bash
+   docker compose -f prod.yaml build
+   docker compose -f prod.yaml up -d
+   ```
+
+## CI/CD Workflow
+
+This template includes **GitHub Actions** for automated build & deployment:
+
+- `18.0` branch: Deploy to **Production** - Trigger: Push to `18.0` - Actions: - Build
+  Docker image using prod.yaml - Push image to GitHub Container Registry (GHCR)
+  <!-- - Deploy to production -->
+  <!-- - `develop` branch: Deploy to **Staging**
+      - Trigger: Push to develop
+      - Actions:
+          - Build Docker image using prod.yaml
+          - Push image to GitHub Container Registry (GHCR)
+          - Deploy to staging -->
+
+**NOTE**: if you want to use github action, you need to add the following secrets to
+your repository:
+
+- TOKEN_GITHUB
 
 # Credits
 

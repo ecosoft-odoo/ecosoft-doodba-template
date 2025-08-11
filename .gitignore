@@ -27,4 +27,6 @@
 /src
 
 # Project-specific docker configurations
-/.docker/
+/.docker/db-access.env
+/.docker/db-creation.env
+/.docker/odoo.env
