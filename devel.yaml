@@ -65,14 +65,6 @@ services:
       - --workers=0
       - --dev=reload,qweb,werkzeug,xml
 
-  db:
-    extends:
-      file: common.yaml
-      service: db
-    environment:
-      POSTGRES_DB: *dbname
-      POSTGRES_PASSWORD: odoopassword
-
   pgweb:
     image: docker.io/sosedoff/pgweb
     networks: *public

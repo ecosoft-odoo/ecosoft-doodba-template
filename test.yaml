@@ -10,6 +10,7 @@ services:
       - .docker/db-access.env
     environment:
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-test}"
+      LIST_DB: "false"
       ODOO_BUS_PUBLIC_SAMESITE_WS: 1
       # To install demo data export DOODBA_WITHOUT_DEMO=false
       WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-all}"
@@ -31,20 +32,6 @@ services:
       - odoo
       - --workers=3
       - --max-cron-threads=1
-
-  db:
-    extends:
-      file: common.yaml
-      service: db
-    environment:
-      DB_HOST: doodba-template-18-0-test-db
-    env_file:
-      - .docker/db-creation.env
-    networks:
-      default:
-        aliases:
-          - "doodba-template-18-0-test-db"
-    restart: unless-stopped
 
   smtp:
     extends:

@@ -13,6 +13,7 @@ services:
       DB_FILTER: "^prod"
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-prod}"
       INITIAL_LANG: "en_US"
+      LIST_DB: "false"
       ODOO_BUS_PUBLIC_SAMESITE_WS: 1
       PGHOST: doodba-template-18-0-prod-db
     depends_on:
@@ -21,20 +22,6 @@ services:
       default:
     labels:
       doodba.domain.main: ""
-
-  db:
-    extends:
-      file: common.yaml
-      service: db
-    environment:
-      DB_HOST: doodba-template-18-0-prod-db
-    env_file:
-      - .docker/db-creation.env
-    restart: unless-stopped
-    networks:
-      default:
-        aliases:
-          - "doodba-template-18-0-prod-db"
 
 networks:
   default:
