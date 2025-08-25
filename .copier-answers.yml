@@ -1,7 +1,6 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v8.3.10
+_commit: v8.4.1
 _src_path: gh:Tecnativa/doodba-copier-template
-backup_dst: ""
 cidr_whitelist: null
 domains_prod: {}
 domains_test: {}
@@ -9,16 +8,19 @@ gitlab_url: ""
 odoo_dbfilter: ^prod
 odoo_initial_lang: en_US
 odoo_listdb: false
+odoo_listdb_staging: false
 odoo_oci_image: ""
 odoo_proxy: traefik
 odoo_version: 18.0
+paths_with_crawlers:
+  - /web/image/website
 paths_without_crawlers:
   - /web
   - /website/info
 postgres_dbname: prod
 postgres_exposed: false
 postgres_username: odoo
-postgres_version: "15"
+postgres_version: ""
 project_author: Ecosoft
 project_license: BSL-1.0
 project_name: doodba-template
