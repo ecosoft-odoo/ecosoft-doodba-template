@@ -23,6 +23,16 @@ services:
     labels:
       doodba.domain.main: ""
 
+  db:
+    image: ghcr.io/tecnativa/postgres-autoconf:15-alpine
+    env_file:
+      - .docker/db-creation.env
+    restart: unless-stopped
+    volumes:
+      - db:/var/lib/postgresql/data:z
+    networks:
+      default:
+
 networks:
   default:
     driver_opts:

@@ -5,7 +5,7 @@ services:
     build:
       context: ./odoo
       args:
-        DB_VERSION: "latest"
+        DB_VERSION: "15"
         ODOO_VERSION: "18.0"
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
@@ -14,6 +14,7 @@ services:
       PGDATABASE: &dbname prod
       PGUSER: &dbuser "odoo"
       PROXY_MODE: "true"
+      LIST_DB: "false"
     tty: true
     volumes:
       - filestore:/var/lib/odoo:z
@@ -22,6 +23,17 @@ services:
       traefik.docker.network: "inverseproxy_shared"
       traefik.frontend.passHostHeader: "true"
       traefik.port: "8069"
+
+  db:
+    image: ghcr.io/tecnativa/postgres-autoconf:15-alpine
+    shm_size: 4gb
+    environment:
+      POSTGRES_DB: *dbname
+      POSTGRES_USER: *dbuser
+      CONF_EXTRA: |
+        work_mem = 512MB
+    volumes:
+      - db:/var/lib/postgresql/data:z
 
   smtpfake:
     image: docker.io/mailhog/mailhog
