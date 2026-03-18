@@ -74,9 +74,10 @@ def _override_docker_command(service, command, file, orig_file=None):
     else:
         docker_compose_file_version = "2.4"
     docker_config = {
-        "version": docker_compose_file_version,
         "services": {service: {"command": command}},
     }
+    if not docker_compose_v2 and docker_compose_file_version:
+        docker_config["version"] = docker_compose_file_version
     docker_config_yaml = yaml.dump(docker_config)
     file.write(docker_config_yaml)
     file.flush()
@@ -201,6 +202,22 @@ def _scan_subrepos_and_add_path_mappings(
                 )
                 firefox_configuration["pathMappings"].append({"url": url, "path": path})
                 chrome_configuration["pathMapping"][url] = path
+
+
+def _modules_installed(c, modules_list, dbname="devel"):
+    """Return set of module technical names installed in dbname."""
+    if not modules_list:
+        return set()
+    # Quote module names safely for SQL IN (...)
+    quoted = ",".join(repr(m) for m in modules_list if m)
+    cmd = (
+        f"{DOCKER_COMPOSE_CMD} exec -T db "
+        f"psql -U odoo -d {dbname} -Atc "
+        f'"select name from ir_module_module '
+        f"where state='installed' and name in ({quoted});\""
+    )
+    res = c.run(cmd, hide=True, warn=True)
+    return set(filter(None, res.stdout.splitlines()))
 
 
 @task
@@ -572,14 +589,14 @@ def lint(c, verbose=False):
 
 
 @task()
-def start(c, detach=True, debugpy=False):
+def start(c, detach=True, debugpy=False, _reload=True, port_prefix=0):
     """Start environment."""
     cmd = DOCKER_COMPOSE_CMD + " up"
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".yaml",
     ) as tmp_docker_compose_file:
-        if debugpy:
+        if debugpy or not _reload:
             # Remove auto-reload
             cmd = (
                 DOCKER_COMPOSE_CMD + " -f docker-compose.yml "
@@ -592,13 +609,16 @@ def start(c, detach=True, debugpy=False):
         if detach:
             cmd += " --detach"
         with c.cd(str(PROJECT_ROOT)):
+            env = dict(
+                UID_ENV,
+                DOODBA_DEBUGPY_ENABLE=str(int(debugpy)),
+            )
+            if port_prefix:
+                env["PORT_PREFIX"] = str(port_prefix)
             result = c.run(
                 cmd,
                 pty=True,
-                env=dict(
-                    UID_ENV,
-                    DOODBA_DEBUGPY_ENABLE=str(int(debugpy)),
-                ),
+                env=env,
             )
             if not (
                 "Recreating" in result.stdout
@@ -747,8 +767,9 @@ def updatepot(
         with open(new_file, "w") as fd:
             fd.write(content.strip() + "\n")
     _logger.info(".po[t] files updated")
-    precommit_cmd = f"pre-commit run --files {' '.join(iglob(f'{glob}/*.po*'))}"
-
+    precommit_cmd = (
+        f"pre-commit run --files {' '.join(iglob(f'{glob}/*.po*'))}--color=always"
+    )
     if not repo and module:
         for folder in iglob(f"{PROJECT_ROOT}/odoo/custom/src/*/*"):
             if os.path.isdir(folder) and os.path.basename(folder) == module:
@@ -907,6 +928,7 @@ def _get_module_list(
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
         "db_filter": "DB_FILTER regex to pass to the test container Set to ''"
         " to disable. Default: '^devel$'",
+        "tags": "Comma-separated list of tags to test. Default: ',/'.join(modules)",
     },
 )
 def test(
@@ -921,6 +943,7 @@ def test(
     cur_file=None,
     mode="init",
     db_filter="^devel$",
+    tags=None,
 ):
     """Run Odoo tests
 
@@ -943,7 +966,18 @@ def test(
         modules = _get_module_list(c, modules, core, extra, private, enterprise)
     odoo_command = ["odoo", "--test-enable", "--stop-after-init", "--workers=0"]
     if mode == "init":
-        odoo_command.append("-i")
+        if ODOO_VERSION >= 19:
+            mods = [m for m in modules.split(",") if m]
+            installed = _modules_installed(c, mods)
+            to_install = [m for m in mods if m not in installed]
+            to_update = sorted(installed)
+
+            if to_install:
+                odoo_command.extend(["-i", ",".join(to_install)])
+            if to_update:
+                odoo_command.extend(["-u", ",".join(to_update)])
+        else:
+            odoo_command.append("-i")
     elif mode == "update":
         odoo_command.append("-u")
     else:
@@ -962,12 +996,16 @@ def test(
             continue
         modules_list.remove(m_to_skip)
     modules = ",".join(modules_list)
-    odoo_command.append(modules)
+    if not (mode == "init" and ODOO_VERSION >= 19):
+        odoo_command.append(modules)
     if ODOO_VERSION >= 12:
         # Limit tests to explicit list
         # Filter spec format (comma-separated)
         # [-][tag][/module][:class][.method]
-        odoo_command.extend(["--test-tags", f"/{',/'.join(modules_list)}"])
+        test_tags = f"/{',/'.join(modules_list)}"
+        if tags:
+            test_tags = tags
+        odoo_command.extend(["--test-tags", test_tags])
     if debugpy:
         _test_in_debug_mode(c, odoo_command)
     else:
@@ -1043,11 +1081,23 @@ def resetdb(
         )
         lang = os.getenv("INITIAL_LANG")
         lang_opt = f" --lang {lang}" if lang else ""
-        c.run(
-            f"{_run} click-odoo-initdb -n {dbname} -m {modules}{lang_opt}",
-            env=UID_ENV,
-            pty=True,
-        )
+        if ODOO_VERSION >= 19:
+            # Odoo 19: Registry.new(force_demo=...) removed → avoid click-odoo-initdb
+            # Use native Odoo CLI; --without-demo=all replaces force_demo=False
+            lang_opt19 = f" --load-language={lang}" if lang else ""
+            c.run(
+                f"{_run} odoo --stop-after-init -d {dbname} -i {modules}"
+                f"{lang_opt19} --without-demo=all",
+                env=UID_ENV,
+                pty=True,
+            )
+        else:
+            # Older versions keep using click-odoo-initdb
+            c.run(
+                f"{_run} click-odoo-initdb -n {dbname} -m {modules}{lang_opt}",
+                env=UID_ENV,
+                pty=True,
+            )
     if populate and ODOO_VERSION < 11:
         _logger.warn(
             f"Skipping populate task as it is not available in v{ODOO_VERSION}"
@@ -1213,7 +1263,7 @@ def restore_snapshot(
             snapshot_name = max(db_list, key=lambda x: x[1])[0]
             if not snapshot_name:
                 raise exceptions.PlatformError(
-                    "No snapshot found for destination_db %s" % destination_db  # noqa: UP031
+                    f"No snapshot found for destination_db {destination_db}"
                 )
         _logger.info("Restoring snapshot %s to %s", (snapshot_name, destination_db))
         _run = f"{DOCKER_COMPOSE_CMD} run --rm -l traefik.enable=false odoo"

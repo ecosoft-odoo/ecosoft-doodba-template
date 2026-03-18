@@ -1,7 +1,8 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v8.4.1
+_commit: v9.3.0
 _src_path: gh:Tecnativa/doodba-copier-template
 cidr_whitelist: null
+compose_version: v2+
 domains_prod: {}
 domains_test: {}
 gitlab_url: ""
@@ -27,3 +28,12 @@ project_name: doodba-template
 smtp_default_from: ""
 smtp_relay_host: ""
 traefik_version: 2
+use_refurb: false
+whitelisted_hosts_devel:
+  - cdnjs.cloudflare.com
+  - fonts.googleapis.com
+  - fonts.gstatic.com
+  - www.google.com
+  - www.googleapis.com
+  - www.gravatar.com
+whitelisted_hosts_test: []
